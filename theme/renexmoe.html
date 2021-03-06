@@ -4,6 +4,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" />
+<link rel="preconnect" href="https://renexmoe.vercel.app" />
 <meta charset="utf-8" />
 <link
   rel="shortcut icon"
@@ -16,7 +17,8 @@
 />
 <title><!--Title--></title>
 <meta name="description" content="A Onemanager-PHP site with Theme-renexmoe" />
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.2/css/app.css"><meta name="theme-color" content="#fff" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.1.6/css/app.css"><meta name="theme-color" content="#fff" />
+<link rel="stylesheet" href="https://lksin.gitee.io/image/background.css">
 <!--BackgroundStart-->
 <style>
   body {
@@ -25,35 +27,111 @@
     background-size: cover;
     background-attachment: fixed;
     background-image: var(--bg);
+    position: relative;
+    width: 100%;
+    background-position: center center;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    background-size: cover;
+    background-repeat: no-repeat;
+    -webkit-transition: all 0.5s;
+    -moz-transition: all 0.5s;
+    -o-transition: all 0.5s;
+    -ms-transition: all 0.5s;
+    transition: all 0.5s;
+  }
+  .mdui-shadow-3 {
+    background: rgba(255, 255, 255, 0.7);
   }
 
-  .mdui-shadow-3 {
-    background: rgba(255, 255, 255, 0.5);
-  }
+    a.mdui-list-item-content{color:#fff;}
+    div.mdui-list-item-content{color:#fff;}
+    .mdui-drawer {
+         background: rgba(255, 255, 255, 0.1);
+    }
+    a.mdui-list-item-content {
+    color: #4e423c;
+}
+   i.mdui-icon.material-icons {
+    color: #ffa7a7;
+}
+.mdui-list-item-icon {
+    --iconcolor: #656565;
+    color: #fb8f8f!important;
+}
+    div.mdui-col-sm-3.mdui-text-right{color:#4e423c;}
+    div.mdui-col-xs-12.mdui-col-sm-7{color:#f57b7b;}
+    div.mdui-col-sm-2.mdui-text-right{color:#4e423c;}
 </style>
+<style>
+.box{
+position:fixed;
+right:10px;
+bottom: 10px;
+height:30px;
+width: 50px; 
+text-align:center;
+padding-top:20px; 
+background-color: #ff609a;
+border-radius: 20%;
+overflow: hidden;
+}
+.box:hover:before{
+top:50%
+}
+.box:hover .box-in{
+visibility: hidden;
+}
+.box:before{
+position: absolute;
+top: -50%;
+left: 50%;
+transform: translate(-50%,-50%);
+content:'回到顶部';
+width: 40px;
+color:#fff;
+font-weight:bold;
+} 
+.box-in{
+visibility: visible;
+display:inline-block;
+height:20px;
+width: 20px;
+border: 3px solid black;
+border-color: white transparent transparent white;
+transform:rotate(45deg);
+}
+</style>
+<body style="height:2000px;">
+<div id="box" class="box">
+<div class="box-in"></div>
+</div> 
+</body>
+<script>
+var timer = null;
+box.onclick = function(){
+cancelAnimationFrame(timer);
+timer = requestAnimationFrame(function fn(){
+var oTop = document.body.scrollTop || document.documentElement.scrollTop;
+if(oTop > 0){
+document.body.scrollTop = document.documentElement.scrollTop = oTop - 50;
+timer = requestAnimationFrame(fn);
+}else{
+cancelAnimationFrame(timer);
+} 
+});
+}
+</script>
 <script>
   window.disableddarkmode = true;
 </script>
 <!--BackgroundEnd-->
 <!--BackgroundMStart-->
-<style>
-  body {
-    --bg: url("<!--BackgroundMUrl-->");
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-attachment: fixed;
-    background-image: var(--bg);
-  }
 
-  .mdui-shadow-3 {
-    background: rgba(255, 255, 255, 0.5);
-  }
-</style>
 <script>
   window.disableddarkmode = true;
 </script>
 <!--BackgroundMEnd-->
-
   </head>
   <body
     class="mdui-appbar-with-toolbar mdui-theme-layout-auto mdui-loaded mdui-theme-accent-pink"
@@ -200,61 +278,24 @@
   <!--AdminEnd-->
 </ul>
 <i id="mouseplace" style="position: absolute"></i>
-
-<div class="mdui-dialog" id="login_input">
-  <div class="mdui-dialog-title">登录</div>
-  <div class="mdui-dialog-content" style="height: 108px">
-    <div class="mdui-textfield mdui-textfield-floating-label">
-      <i class="mdui-icon material-icons">lock</i
-      ><label class="mdui-textfield-label">密码</label
-      ><input
-        class="mdui-textfield-input"
-        name="password1"
-        type="password"
-        onkeydown="if(event.keyCode==13) document.querySelector('#login_btn').click();"
-      />
-    </div>
-  </div>
-  <div class="mdui-dialog-actions">
-    <button class="mdui-btn mdui-ripple" mdui-dialog-close="" id="login_close">取消</button
-    ><button
-      id="login_btn"
-      class="mdui-btn mdui-ripple"
-      type="submit"
-      value="登录"
-    >
-      登录
-    </button>
-  </div>
-</div>
-<!-- <form action="?admin" method="post">
+<form action="?admin" method="post">
   <div class="mdui-dialog" id="login_input">
     <div class="mdui-dialog-title">登录</div>
     <div class="mdui-dialog-content" style="height: 108px">
       <div class="mdui-textfield mdui-textfield-floating-label">
         <i class="mdui-icon material-icons">lock</i
         ><label class="mdui-textfield-label">密码</label
-        ><input
-          class="mdui-textfield-input"
-          name="password1"
-          type="password"
-          onclick="if(event.keyCode==13) document.querySelector('#login_btn').click();"
-        />
+        ><input class="mdui-textfield-input" name="password1" type="password" />
       </div>
     </div>
     <div class="mdui-dialog-actions">
       <button class="mdui-btn mdui-ripple" mdui-dialog-close="">取消</button
-      ><button
-        id="login_btn"
-        class="mdui-btn mdui-ripple"
-        type="submit"
-        value="登录"
-      >
+      ><button class="mdui-btn mdui-ripple" type="submit" value="登录">
         登录
       </button>
     </div>
   </div>
-</form> -->
+</form>
  <!--EncryptedStart-->
 <div class="mdui-col-md-6 mdui-col-offset-md-3">
   <br />
@@ -294,10 +335,10 @@
 </div>
 <div
   class="mdui-typo mdui-shadow-3 markdown"
-  style="padding: 20px; margin: 20px 0; overflow-x: scroll"
+  style="padding: 20px; margin: 20px 0;overflow-x: scroll;"
   id="head"
 >
-  <pre><code id="head-md"><!--HeadmdContent--></code></pre>
+<pre><code id="head-md"><!--HeadmdContent--></code></pre>
 </div>
 <!--HeadmdEnd-->
 
@@ -305,7 +346,7 @@
   class="mdui-row mdui-shadow-3"
   style="padding: 5px; margin: 20px 0; border-radius: 8px"
 >
-  <ul class="mdui-list" id="file-list">
+  <ul class="mdui-list">
     <li class="mdui-list-item mdui-ripple">
       <div class="mdui-row mdui-col-xs-12">
         <div class="mdui-col-xs-12 mdui-col-sm-7">
@@ -416,6 +457,7 @@
 
   </ul>
 </div>
+
 <!--ReadmemdStart-->
 <div class="mdui-chip mdui-ripple mdui-hidden-xs">
   <span class="mdui-chip-icon"
@@ -424,7 +466,7 @@
 </div>
 <div
   class="mdui-typo mdui-shadow-3 markdown"
-  style="padding: 20px; margin: 20px 0; overflow-x: scroll"
+  style="padding: 20px; margin: 20px 0;overflow-x: scroll;"
   id="readme"
 >
   <pre><code id="readme-md"><!--ReadmemdContent--></code></pre>
@@ -436,17 +478,9 @@
 </div>
 <!--FootomfEnd-->
 
-<script>
-  document.querySelector("#admin-menu").innerHTML +=
-    '<li class="mdui-menu-item"><a href="javascript:void(0);"class="mdui-ripple getalllink"><i class="mdui-menu-item-icon mdui-icon material-icons">link</i>批量链接</a></li>';
-</script>
 <!--IsFolderEnd-->
  <!--IsFileStart-->
-<div
-  id="file"
-  class="mdui-shadow-3"
-  style="padding: 5px; margin: 20px 0px; padding: 20px; border-radius: 8px"
->
+<div id="file" class="mdui-shadow-3" style="padding: 5px;margin: 20px 0px;padding: 20px;border-radius: 8px;">
   <!--IsimgFileStart-->
 <img class="mdui-img-fluid mdui-center mdui-m-t-5" src="<!--FileDownUrl-->" />
 <!--IsimgFileEnd-->
@@ -485,7 +519,7 @@
 <!--IsofficeFileEnd-->
 
   <!--IspdfFileStart-->
-<embed src="<!--FileEncodeReplaceUrl-->" type="application/pdf" />
+<embed src="<!--FileEncodeReplaceUrl-->" type="application/pdf">
 <!--IspdfFileEnd-->
  <!--IstxtFileStart-->
 <pre
@@ -532,5 +566,5 @@
   { "music":"audiotrack", "video":"ondemand_video", "img":"image",
   "pdf":"picture_as_pdf", "default":"insert_drive_file"}
   <!--IconValuesEnd-->
-  <script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.2/js/app@1b381f3c.40f4c305d42c00b35090.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.2/js/app@798ab416.792c8d75440df9a23b96.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.2/js/app@7c420fd4.302d4b179d0767703960.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.2/js/app@9c50beac.07c2c30ca1d2de2820c7.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.2/js/app@df18e074.5e5948da52878c0b401a.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.2/js/app@e50ee5dc.af6b4a88ac019cfdaaaf.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.2/js/app@f0256996.9f84b14605432c1e3132.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.2/js/webpack-runtime.583bf820faf08bdfd009.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.1.6/js/app@1b381f3c.5004ff1e7fccf38af990.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.1.6/js/app@272e6848.0faf8403dbc4970e8270.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.1.6/js/app@28a13772.156264d15483086ee82c.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.1.6/js/app@34e3d95a.23256089ba366843952c.js"></script><script src="https://lksin.gitee.io/image/log.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.1.6/js/app@df18e074.8b37144c0f7c512bf7f5.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.1.6/js/app@f0256996.ff56a89bd9da92b16661.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.1.6/js/app@f1cc13fd.6c1d3398a331fea611a7.js"></script><script src="https://cdn.jsdelivr.net/gh/186526/renexmoe-cdn@v1.1.6/js/webpack-runtime.e7b09b0b7f16ddd45689.js"></script>
 </html>
