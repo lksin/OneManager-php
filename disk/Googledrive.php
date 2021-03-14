@@ -16,14 +16,14 @@ class Googledrive {
         }
         //$this->oauth_url = 'https://www.googleapis.com/oauth2/v4/';
         $this->oauth_url = 'https://accounts.google.com/o/oauth2/';
-        $this->api_url = 'https://www.googleapis.com/drive/v3/';
+        $this->api_url = 'https://www.googleapis.com/drive/v3';
         $this->scope = 'https://www.googleapis.com/auth/drive';
 
         $this->client_secret = urlencode($this->client_secret);
         $this->scope = urlencode($this->scope);
         //$this->DownurlStrName = '@microsoft.graph.downloadUrl';
         //$this->ext_api_url = '/me/drive/root';
-        $this->default_drive_id = getConfig('default_drive_id', $tag);
+        $this->driveId = getConfig('driveId', $tag);
         $res = $this->get_access_token(getConfig('refresh_token', $tag));
     }
 
@@ -42,8 +42,7 @@ class Googledrive {
 
     public function ext_show_innerenv()
     {
-        if ($this->default_drive_id!='') return ['default_drive_id'];
-        return [];
+        return ['driveId'];
     }
 
     public function list_files($path = '/')
@@ -55,7 +54,7 @@ class Googledrive {
 
     protected function files_format($files)
     {
-        if (isset($files['files'])) {
+        if (isset($files['files']) || (isset($files['mimeType'])&&$files['mimeType']=='application/vnd.google-apps.folder') ) {
             $tmp['type'] = 'folder';
             $tmp['id'] = $files['id'];
             $tmp['name'] = $files['name'];
@@ -102,8 +101,8 @@ class Googledrive {
         if ($path == '') $path = '/';
 
         if (!($files = getcache('path_' . $path, $this->disktag))) {
-            //$response = curl('GET', $this->api_url . 'drives', '', ['Authorization' => 'Bearer ' . $this->access_token]);
-            //$response = curl('GET', $this->api_url . 'files?fields=*,files(id,name,mimeType,size,modifiedTime,parents,webContentLink,thumbnailLink),nextPageToken' . (($this->default_drive_id!='')?'&driveId=' . $this->default_drive_id . '&corpora=teamDrive&includeItemsFromAllDrives=true&supportsAllDrives=true':''), '', ['Authorization' => 'Bearer ' . $this->access_token]);
+            //$response = curl('GET', $this->api_url . '/drives', '', ['Authorization' => 'Bearer ' . $this->access_token]);
+            //$response = curl('GET', $this->api_url . '/files?fields=*,files(id,name,mimeType,size,modifiedTime,parents,webContentLink,thumbnailLink),nextPageToken' . (($this->driveId!='')?'&driveId=' . $this->driveId . '&corpora=teamDrive&includeItemsFromAllDrives=true&supportsAllDrives=true':''), '', ['Authorization' => 'Bearer ' . $this->access_token]);
             if ($path == '/' || $path == '') {
                 $files = $this->fileList();
                 //error_log1('root_id' . $files['id']);
@@ -132,15 +131,15 @@ class Googledrive {
                                 if (in_array(splitlast($item['name'],'.')[1], $exts['txt'])) {
                                     if (!(isset($item['content'])&&$item['content']['stat']==200)) {
                                         //if (!isset($item['downUrl'])) {
-                                            $res = curl('GET', $item['webContentLink'], '', '', 1);
+                                            $res = curl('GET', $item['webContentLink'], '', [], 1);
                                             $weblink = $res['returnhead']['Location'];
                                             //if ($weblink!==null) $item['downUrl'] = $weblink;
                                             //else error_log1('Cant get link:' . json_encode($res, JSON_PRETTY_PRINT));
                                         //}
                                         if ($res['stat']==302) {
-                                            $content1 = curl('GET', $weblink, '', ["User-Agent"=>"qkqpttgf/OneManager 3.0.0", "Accept"=>"*/*"], 1);
+                                            $content1 = curl('GET', $weblink, '', ["User-Agent"=>"qkqpttgf/OneManager 3.0.0", "Accept"=>"*/*"]);
                                             $item['content'] = $content1;
-                                        } else $content1 = $res;
+                                        }// else $content1 = $res;
                                         //error_log1($item['name'] . '~' . json_encode($content1, JSON_PRETTY_PRINT) . PHP_EOL);
                                         $parent_folder['files'][$i] = $item;
                                         savecache('path_' . $path, $parent_folder, $this->disktag);
@@ -175,21 +174,20 @@ class Googledrive {
     }
     protected function fileList($parent_file_id = '')
     {
-        $url = $this->api_url . 'files';
+        $url = $this->api_url . '/files';
 
         $url .= '?fields=files(id,name,mimeType,size,modifiedTime,parents,webContentLink,thumbnailLink,shared,permissions,permissionIds),nextPageToken';
         //$url .= '?fields=files(*),nextPageToken';
         //$url .= '?q=mimeType=\'application/vnd.google-apps.folder\'';
         if ($parent_file_id!='') {
-            $q = ${parent_file_id};
+            $q = $parent_file_id;
         } else {
-            if ($this->default_drive_id!='') $q = $this->default_drive_id;
-            else $q = 'root';
+            $q = $this->driveId;
         }
         $q = '\'' . $q . '\' in parents and trashed = false';
         $q = urlencode($q);
         $url .= '&q=' . $q;
-        if ($this->default_drive_id!='') $url .= '&driveId=' . $this->default_drive_id . '&corpora=teamDrive&includeItemsFromAllDrives=true&supportsAllDrives=true';
+        if ($this->driveId!='root') $url .= '&driveId=' . $this->driveId . '&corpora=teamDrive&includeItemsFromAllDrives=true&supportsAllDrives=true';
 
         $header['Authorization'] = 'Bearer ' . $this->access_token;
 
@@ -199,7 +197,7 @@ class Googledrive {
     }
     protected function permission($op, $fileId)
     {
-        $url = $this->api_url . 'files/' . $fileId . '/permissions';
+        $url = $this->api_url . '/files/' . $fileId . '/permissions';
         if ($op=='create') {
             $method = 'POST';
             $header['Content-Type'] = 'application/json';
@@ -219,6 +217,261 @@ class Googledrive {
         $res = curl($method, $url, $data, $header);
         //error_log1('Set Share' . json_encode($res, JSON_PRETTY_PRINT));
         return $res;
+    }
+
+    public function Rename($file, $newname) {
+        $url = $this->api_url . '/files/' . $file['id'] . '?supportsAllDrives=true';
+        $tmp['name'] = $newname;
+        $result = $this->GDAPI('PATCH', $url, json_encode($tmp));
+        return output(json_encode($this->files_format(json_decode($result['body'], true))), $result['stat']);
+    }
+    public function Delete($file) {
+        $url = $this->api_url . '/files/' . $file['id'] . '?supportsAllDrives=true';
+        $result = $this->GDAPI('DELETE', $url);
+        return output(json_encode($this->files_format(json_decode($result['body'], true))), $result['stat']);
+    }
+    public function Encrypt($folder, $passfilename, $pass) {
+        $existfile = $this->list_path($folder['path'] . '/' . $passfilename);
+        if (isset($existfile['name'])) {
+            if ($pass==='') {
+                // 如果为空，删除
+                $this->Delete(['id'=>$existfile['id']]);
+                return output('Success', 200);
+            } else {
+                $result = $this->editFile($existfile['id'], $pass);
+            }
+        } else {
+            if (!$folder['id']) {
+                $res = $this->list_path($folder['path']);
+                //error_log1('res:' . json_encode($res));
+                $folder['id'] = $res['id'];
+            }
+            if (!$folder['id']) {
+                $folder['id'] = $this->driveId;
+            }
+            $result = $this->createFile_c($folder['id'], $passfilename, $pass);
+        }
+
+        //error_log1('2,url:' . $url .' res:' . json_encode($result));
+        return output(json_encode($this->files_format(json_decode($result['body'], true))), $result['stat']);
+    }
+    public function Move($file, $folder) {
+        $nowParentId = $this->list_path($file['path'])['id'];
+        if (!$nowParentId) {
+            $nowParentId = $this->driveId;
+        }
+        if (!$folder['id']) {
+            $res = $this->list_path($folder['path']);
+            //error_log1('res:' . json_encode($res));
+            $folder['id'] = $res['id'];
+        }
+        if (!$folder['id']) {
+            $folder['id'] = $this->driveId;
+        }
+        $url = $this->api_url . '/files/' . $file['id'] . '?removeParents=' . $nowParentId . '&addParents=' . $folder['id'] . '&supportsAllDrives=true';
+        //$tmp['name'] = $newname;
+        $result = $this->GDAPI('PATCH', $url);
+        return output(json_encode($this->files_format(json_decode($result['body'], true))), $result['stat']);
+    }
+    public function Copy($file) {
+        $url = $this->api_url . '/files/' . $file['id'] . '/copy?supportsAllDrives=true';
+        $namearr = splitlast($file['name'], '.');
+        date_default_timezone_set('UTC');
+        if ($namearr[0]!='') {
+            $newname = $namearr[0] . '_' . date("Ymd\_His");
+            if ($namearr[1]!='') $newname .= '.' . $namearr[1];
+        } else {
+            $newname = '.' . $namearr[1] . '_' . date("Ymd\_His");
+        }
+        $tmp['name'] = $newname;
+        $result = $this->GDAPI('POST', $url, json_encode($tmp));
+        return output(json_encode($this->files_format(json_decode($result['body'], true))), $result['stat']);
+    }
+    public function Edit($file, $content) {
+        $tmp = splitlast($file['path'], '/');
+        $folderpath = $tmp[0];
+        $filename = $tmp[1];
+        $existfile = $this->list_path($file['path']);
+        if (isset($existfile['name'])) {
+            $result = $this->editFile($existfile['id'], $content);
+        } else {
+            $result = $this->createFile_c($this->list_path($folderpath)['id'], $filename, $content);
+        }
+        //error_log1('edit: ' . json_encode($result, JSON_PRETTY_PRINT));
+        if ($result['stat']==200) return output('success', 0);
+        return output(json_encode($this->files_format(json_decode($result['body'], true))), $result['stat']);
+    }
+    public function Create($parent, $type, $name, $content = '') {
+        $filename = spurlencode($name);
+        $filename = path_format($parent['path'] . '/' . $filename);
+        $res = $this->list_path($filename);
+        //error_log1($filename . '查重:' . json_encode($res, JSON_PRETTY_PRINT) . PHP_EOL);
+        if (isset($res['name'])) {
+            $tmp['error']['code'] = 'File exist';
+            $tmp['error']['message'] = $res;
+            $tmp['error']['stat'] = 409;
+            return output(json_encode($this->files_format($tmp), JSON_PRETTY_PRINT), $tmp['error']['stat']);
+        }
+        if (!$parent['id']) {
+            $res = $this->list_path($parent['path']);
+            //error_log1('找ID:' . json_encode($res));
+            $parent['id'] = $res['id'];
+        }
+        if (!$parent['id']) {
+            $parent['id'] = $this->driveId;
+        }
+
+        if ($type=='file') {
+            $result = $this->createFile_c($parent['id'], $name, $content);
+        }
+        if ($type=='folder') {
+            $result = $this->createFolder($parent['id'], $name);
+        }
+        //error_log1('data:' . $data . ' res:' . json_encode($result, JSON_PRETTY_PRINT));
+        //savecache('path_' . $path1, json_decode('{}',true), $_SERVER['disktag'], 1);
+        return output(json_encode($this->files_format(json_decode($result['body'], true))), $result['stat']);
+    }
+    public function get_thumbnails_url($path = '/') {
+        $res = $this->list_path($path);
+        $thumb_url = $res['thumbnailLink'];
+        return $thumb_url;
+    }
+    public function bigfileupload($path) {
+        return output('Stop!\nCan not upload form explorer without token.', 403);
+
+        // https://developers.google.com/drive/api/v3/manage-uploads#http---multiple-requests
+
+        if ($_POST['upbigfilename']=='') return output('error: no file name', 400);
+        if (!is_numeric($_POST['filesize'])) return output('error: no file size', 400);
+        if (!$_SERVER['admin']) if (!isset($_POST['filemd5'])) return output('error: no file md5', 400);
+        $filename = $_POST['upbigfilename'];
+        $filename = path_format($path . '/' . $filename);
+        $res = $this->list_path($filename);
+        //error_log1($filename . '查重:' . json_encode($res, JSON_PRETTY_PRINT) . PHP_EOL);
+        if (isset($res['name'])) {
+            $tmp['error']['code'] = 'File exist';
+            $tmp['error']['message'] = json_encode($res);
+            $tmp['error']['stat'] = 409;
+            return output(json_encode($this->files_format($tmp), JSON_PRETTY_PRINT), $tmp['error']['stat']);
+        }
+        $tmp = splitlast($_POST['upbigfilename'], '/');
+        if ($tmp[1]!='') {
+            $fileinfo['name'] = $tmp[1];
+            if ($_SERVER['admin']) $fileinfo['path'] = $tmp[0];
+        } else {
+            $fileinfo['name'] = $_POST['upbigfilename'];
+        }
+        $fileinfo['size'] = $_POST['filesize'];
+        $fileinfo['filelastModified'] = $_POST['filelastModified'];
+        if ($_SERVER['admin']) {
+            $filename = $fileinfo['name'];
+        } else {
+            $tmp1 = splitlast($fileinfo['name'], '.');
+            if ($tmp1[0]==''||$tmp1[1]=='') $filename = $_POST['filemd5'];
+            else $filename = $_POST['filemd5'] . '.' . $tmp1[1];
+        }
+        $parent = $this->list_path($path . '/' . $fileinfo['path']);
+        if (isset($parent['id'])) {
+            $parent_file_id = $parent['id'];
+        } else {
+            $res = $this->createFolder($this->list_path($path)['id'], $fileinfo['path']);
+            //error_log1($res['body']);
+            $parent_file_id = json_decode($res['body'], true)['id'];
+        }
+        $url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable';
+        $res = $this->list_path($path);
+        //error_log1('找ID:' . json_encode($res));
+        $parentId = $res['id'];
+        if (!$parentId) {
+            $parentId = $this->driveId;
+        }
+        $tmp['name'] = $_POST['upbigfilename'];
+        $tmp['parents'][0] = $parentId;
+
+        $header['Authorization'] = 'Bearer ' . $this->access_token;
+        $header['Content-Type'] = 'application/json; charset=UTF-8';
+        //$header['Content-Length'] = '';
+        //$header['X-Upload-Content-Type'] = '';
+        //$header['X-Upload-Content-Length'] = $_POST['filesize'];
+
+        $response = curl('POST', $url, json_encode($tmp), $header, 1);
+        return output($response['returnhead']['Location'], $response['stat']);
+    }
+
+    protected function editFile($id, $content) {
+        $url = 'https://www.googleapis.com/upload/drive/v3/files/' . $id . '?uploadType=multipart&supportsAllDrives=true';
+
+        $boundary = md5($id . date());
+        $header['Content-Type'] = 'multipart/related; boundary=' . $boundary;
+        $header['Authorization'] = 'Bearer ' . $this->access_token;
+        $data = '--' . $boundary . "\r\n";
+        $data .= 'Content-Type: application/json; charset=UTF-8' . "\r\n";
+        $data .= "\r\n";
+        $data .= "\r\n";
+        $data .= "\r\n";
+        $data .= '--' . $boundary . "\r\n";
+        $data .= 'Content-Type: text/plain' . "\r\n";
+        $data .= "\r\n";
+        $data .= $content . "\r\n";
+        $data .= '--' . $boundary . "--";
+
+        $result = curl('PATCH', $url, $data, $header);
+        //error_log1('url: ' . $url . ' data: ' . $data . ' result: ' . json_encode($result, JSON_PRETTY_PRINT));
+        return $result;
+    }
+    protected function createFile_c($parentId, $name, $content) {
+        while (substr($name, 0, 1)=='/') $name = substr($name, 1);
+        while (substr($name, -1)=='/') $name = substr($name, 0, -1);
+        if (strpos($name, '/')>0) {
+            $p = splitlast($name, '/');
+            $res = $this->createFolder($parentId, $p[0]);
+            $parentId = json_decode($res['body'], true)['id'];
+            $name = $p[1];
+        }
+
+        $url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true';
+        $tmp['name'] = $name;
+        $tmp['parents'][0] = $parentId;
+
+        $boundary = md5($name . date());
+        $header['Content-Type'] = 'multipart/related; boundary=' . $boundary;
+        $header['Authorization'] = 'Bearer ' . $this->access_token;
+        $data = '--' . $boundary . "\r\n";
+        $data .= 'Content-Type: application/json; charset=UTF-8' . "\r\n";
+        $data .= "\r\n";
+        $data .= json_encode($tmp, JSON_PRETTY_PRINT) . "\r\n";
+        $data .= "\r\n";
+        $data .= '--' . $boundary . "\r\n";
+        $data .= 'Content-Type: text/plain' . "\r\n";
+        $data .= "\r\n";
+        $data .= $content . "\r\n";
+        $data .= '--' . $boundary . "--";
+
+        $result = curl('POST', $url, $data, $header);
+        return $result;
+    }
+    protected function createFolder($parentId, $name) {
+        while (substr($name, 0, 1)=='/') $name = substr($name, 1);
+        while (substr($name, -1)=='/') $name = substr($name, 0, -1);
+        if (strpos($name, '/')>0) {
+            $p = splitlast($name, '/');
+            $res = $this->createFolder($parentId, $p[0]);
+            $parentId = json_decode($res['body'], true)['id'];
+            $name = $p[1];
+        }
+
+        $url = $this->api_url . '/files?&supportsAllDrives=true';
+
+        $tmp['name'] = $name;
+        $tmp['parents'][0] = $parentId;
+        $tmp['mimeType'] = 'application/vnd.google-apps.folder';
+        $data = json_encode($tmp);
+
+        $header['Content-Type'] = 'application/json; charset=UTF-8';
+        $header['Authorization'] = 'Bearer ' . $this->access_token;
+
+        $result = curl('POST', $url, $data, $header);
+        return $result;
     }
     
     public function AddDisk() {
@@ -243,10 +496,10 @@ class Googledrive {
 
             $tmp = null;
             if ($_POST['DriveType']=='Googledrive') {
-                $tmp['default_drive_id'] = '';
+                $tmp['driveId'] = 'root';
             } else {
                 // 直接是id
-                $tmp['default_drive_id'] = $_POST['DriveType'];
+                $tmp['driveId'] = $_POST['DriveType'];
             }
 
             $response = setConfigResponse( setConfig($tmp, $this->disktag) );
@@ -272,7 +525,7 @@ class Googledrive {
                 if (!$response) return message($this->error['body'], 'Error', $this->error['stat']);
             }
 
-            $api = $this->api_url . 'drives';
+            $api = $this->api_url . '/drives';
             $arr = curl('GET', $api, '', [ 'Authorization' => 'Bearer ' . $this->access_token ]);
             //if (!($arr['stat']==200||$arr['stat']==403||$arr['stat']==400||$arr['stat']==404))
             if ($arr['stat']!=200) return message($arr['stat'] . json_encode(json_decode($arr['body']), JSON_PRETTY_PRINT), 'Get followedSites', $arr['stat']);
@@ -516,16 +769,12 @@ class Googledrive {
         return true;
     }
 
-    protected function GDAPI($method, $path, $data = '')
+    protected function GDAPI($method, $url, $data = '')
     {
-        if (substr($path,0,7) == 'http://' or substr($path,0,8) == 'https://') {
-            $url=$path;
-            $lenth=strlen($data);
-            $headers['Content-Length'] = $lenth;
-            $lenth--;
-            $headers['Content-Range'] = 'bytes 0-' . $lenth . '/' . $headers['Content-Length'];
+        /*if (substr($path,0,7) == 'http://' or substr($path,0,8) == 'https://') {
+            $url = $path;
         } else {
-            $url = $this->api_url . $this->ext_api_url;
+            $url = $this->api_url;
             if ($path=='' or $path=='/') {
                 $url .= '/';
             } else {
@@ -554,9 +803,10 @@ class Googledrive {
                 $method='POST';
                 $headers['Content-Type'] = 'application/json';
             }
-        }
+        }*/
         $headers['Authorization'] = 'Bearer ' . $this->access_token;
         if (!isset($headers['Accept'])) $headers['Accept'] = '*/*';
+        $headers['Content-Type'] = 'application/json';
         //if (!isset($headers['Referer'])) $headers['Referer'] = $url;*
         $sendHeaders = array();
         foreach ($headers as $headerName => $headerVal) {
@@ -575,13 +825,13 @@ class Googledrive {
         //curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $sendHeaders);
         $response['body'] = curl_exec($ch);
-        $response['stat'] = curl_getinfo($ch,CURLINFO_HTTP_CODE);
+        $response['stat'] = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         //$response['Location'] = curl_getinfo($ch);
         curl_close($ch);
-        error_log1($response['stat'].'
-    '.$response['body'].'
-    '.$url.'
-    ');
+        /*error_log1($response['stat'].'
+    ' . $response['body'].'
+    ' . $url.'
+    ' . $data);*/
         return $response;
     }
 
