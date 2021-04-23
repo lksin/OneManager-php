@@ -501,6 +501,7 @@ function isHideFile($name)
         'head.omf',
         'foot.omf',
         'favicon.ico',
+        'robots.txt',
         'index.html',
     ];
 
