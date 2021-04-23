@@ -145,7 +145,7 @@ function main($path)
             $tmp = substr($tmp, 1);
             if ($tmp!='') $param = '?' . $tmp;
         }
-        return output('visit https.', 302, [ 'Location' => 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'] . $param ]);
+        return output('visit via https.', 302, [ 'Location' => 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'] . $param ]);
     }
     if (in_array($_SERVER['firstacceptlanguage'], array_keys($constStr['languages']))) {
         $constStr['language'] = $_SERVER['firstacceptlanguage'];
@@ -1806,7 +1806,7 @@ function render_list($path = '', $files = [])
         } else {
             if (!($html = getcache('customTheme'))) {
                 $file_path = $theme;
-                $tmp = curl('GET', $file_path, false, [], 1);
+                $tmp = curl('GET', $file_path, '', [], 1);
                 if ($tmp['stat']==302) {
                     error_log1(json_encode($tmp));
                     $tmp = curl('GET', $tmp["returnhead"]["Location"]);
