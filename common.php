@@ -37,6 +37,7 @@ $EnvConfigs = [
     'theme'             => 0b010,
     'dontBasicAuth'     => 0b010,
     'referrer'          => 0b011,
+    'forceHttps'        => 0b010,
 
     'Driver'            => 0b100,
     'client_id'         => 0b100,
@@ -133,6 +134,19 @@ function main($path)
     if (strpos(__DIR__, ':')) $slash = '\\';
     $_SERVER['php_starttime'] = microtime(true);
     $path = path_format($path);
+    $_SERVER['PHP_SELF'] = path_format($_SERVER['base_path'] . $path);
+    if (getConfig('forceHttps')&&$_SERVER['REQUEST_SCHEME']=='http') {
+        if ($_GET) {
+            $tmp = '';
+            foreach ($_GET as $k => $v) {
+                if ($v===true) $tmp .= '&' . $k;
+                else $tmp .= '&' . $k . '=' . $v;
+            }
+            $tmp = substr($tmp, 1);
+            if ($tmp!='') $param = '?' . $tmp;
+        }
+        return output('visit https.', 302, [ 'Location' => 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'] . $param ]);
+    }
     if (in_array($_SERVER['firstacceptlanguage'], array_keys($constStr['languages']))) {
         $constStr['language'] = $_SERVER['firstacceptlanguage'];
     } else {
@@ -150,8 +164,6 @@ function main($path)
     $_SERVER['timezone'] = getConfig('timezone');
     if (isset($_COOKIE['timezone'])&&$_COOKIE['timezone']!='') $_SERVER['timezone'] = $_COOKIE['timezone'];
     if ($_SERVER['timezone']=='') $_SERVER['timezone'] = 0;
-    $_SERVER['PHP_SELF'] = path_format($_SERVER['base_path'] . $path);
-    
 
     if (getConfig('admin')=='') return install();
     if (getConfig('adminloginpage')=='') {
@@ -823,8 +835,9 @@ function needUpdate()
 function output($body, $statusCode = 200, $headers = ['Content-Type' => 'text/html'], $isBase64Encoded = false)
 {
     if (isset($_SERVER['Set-Cookie'])) $headers['Set-Cookie'] = $_SERVER['Set-Cookie'];
-    $headers['Referrer-Policy'] = 'no-referrer'; //$headers['Referrer-Policy'] = 'same-origin';
-    $headers['X-Frame-Options'] = 'sameorigin';
+    //$headers['Referrer-Policy'] = 'no-referrer';
+    //$headers['Referrer-Policy'] = 'same-origin';
+    //$headers['X-Frame-Options'] = 'sameorigin';
     return [
         'isBase64Encoded' => $isBase64Encoded,
         'statusCode' => $statusCode,
